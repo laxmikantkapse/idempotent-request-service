@@ -1,0 +1,123 @@
+{
+  "info": {
+    "name": "Idempotent Request Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "request_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Submit new request (202)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Status is 202', () => pm.response.to.have.status(202));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('request_id', json.id);",
+            "pm.test('Status is pending', () => pm.expect(json.status).to.eql('pending'));"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "{{$randomUUID}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"request_type\": \"payment\", \"payload\": {\"amount\": 500, \"currency\": \"USD\"}}"
+        },
+        "url": "{{base_url}}/api/v1/requests"
+      }
+    },
+    {
+      "name": "2. Duplicate request (409)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": ["pm.test('Status is 409', () => pm.response.to.have.status(409));"]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "fixed-duplicate-key-001" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"request_type\": \"payment\", \"payload\": {\"amount\": 500}}"
+        },
+        "url": "{{base_url}}/api/v1/requests"
+      }
+    },
+    {
+      "name": "3. Poll status (200)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has status field', () => pm.expect(pm.response.json()).to.have.property('status'));"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/requests/{{request_id}}"
+      }
+    },
+    {
+      "name": "4. Cancel request (200)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Status is 200 or 422', () => {",
+            "  pm.expect(pm.response.code).to.be.oneOf([200, 422]);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "DELETE",
+        "url": "{{base_url}}/api/v1/requests/{{request_id}}"
+      }
+    },
+    {
+      "name": "5. Missing Idempotency-Key (400)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": ["pm.test('Status is 400', () => pm.response.to.have.status(400));"]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"request_type\": \"payment\"}"
+        },
+        "url": "{{base_url}}/api/v1/requests"
+      }
+    },
+    {
+      "name": "6. Not found (404)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": ["pm.test('Status is 404', () => pm.response.to.have.status(404));"]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/api/v1/requests/00000000-0000-0000-0000-000000000000"
+      }
+    }
+  ]
+}
