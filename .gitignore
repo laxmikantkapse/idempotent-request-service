@@ -1,0 +1,46 @@
+cat > .gitignore << 'EOF'
+# Bundler
+/.bundle
+/vendor/bundle
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Database config (contains credentials)
+/config/database.yml
+
+# Master key and credentials
+/config/master.key
+/config/credentials/*.key
+
+# Logs and temp files
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# Storage
+/storage/*
+!/storage/.keep
+
+# Node modules (if any)
+/node_modules
+
+# Coverage reports
+/coverage
+
+# Mac files
+.DS_Store
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Pidfiles
+/tmp/pids/*
+!/tmp/pids/.keep
+EOF
